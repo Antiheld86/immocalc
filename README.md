@@ -1,4 +1,4 @@
-# Immobilienrechner 2.0
+# Immocalc
 
 Renditerechner für vermietete Wohnimmobilien in Deutschland. Rechnet
 einheitengenau über 40 Jahre, mit Kaufpreisaufteilung nach Sachwertverfahren,
@@ -38,7 +38,7 @@ Fertige Images ohne lokalen Build:
 
 ```bash
 docker pull ghcr.io/antiheld86/immocalc:latest
-docker run -d -p 8087:80 --name immorechner ghcr.io/antiheld86/immocalc:latest
+docker run -d -p 8087:80 --name immocalc ghcr.io/antiheld86/immocalc:latest
 ```
 
 Ist das Repository privat, ist es das Paket zunächst auch — vor dem Pull
@@ -142,7 +142,7 @@ Information.
 ## Datenhaltung
 
 `localStorage` unter den Schlüsseln `immorechner:entwurf` (aktuelle Eingabe,
-wird laufend gesichert) und `immorechner:objekte` (gespeicherte Vergleiche).
+wird laufend gesichert) und `immorechner:objekte` (gespeicherte Vergleiche). Die Schlüssel tragen den früheren Namen, damit vorhandene Daten nach der Umbenennung erhalten bleiben.
 
 Für Sicherungen und den Umzug zwischen Geräten die Export-Funktion nutzen. Die
 JSON-Datei enthält beides und lässt sich über Importieren wieder einlesen.

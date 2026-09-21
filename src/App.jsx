@@ -7,6 +7,7 @@ import { RisikoTab } from "./tabs/RisikoTab.jsx";
 import { VergleichTab } from "./tabs/VergleichTab.jsx";
 import { eur, pct, num } from "./format.js";
 
+/* Die Schlüssel behalten den früheren Namen, damit gespeicherte Daten erhalten bleiben. */
 const SPEICHER = "immorechner:objekte";
 const ENTWURF = "immorechner:entwurf";
 const HINWEIS_DAUER = 10000;
@@ -103,7 +104,7 @@ export default function App() {
     });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `immorechner-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `immocalc-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -158,7 +159,7 @@ export default function App() {
         <header className="kopf">
           <div className="kopf-zeile">
             <div>
-              <h1>Immobilienrechner</h1>
+              <h1>Immocalc</h1>
               <p>
                 Einheitengenau, über 40 Jahre gerechnet, mit Kaufpreisaufteilung, Steuerwirkung
                 und Vergleichsdepot. Deine Eingaben werden automatisch in diesem Browser gespeichert.

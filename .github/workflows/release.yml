@@ -62,6 +62,6 @@ jobs:
           image="$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')"
           version="${GITHUB_REF_NAME#v}"
           gh release create "$GITHUB_REF_NAME" \
-            --title "Immobilienrechner $version" \
+            --title "Immocalc $version" \
             --generate-notes \
             --notes "Docker-Image: \`docker pull $image:$version\` (linux/amd64, linux/arm64)"

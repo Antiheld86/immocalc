@@ -3,7 +3,7 @@
 # Voraussetzung: git und die GitHub CLI (gh), angemeldet mit `gh auth login`.
 set -euo pipefail
 
-NAME="${1:-immorechner}"
+NAME="${1:-immocalc}"
 SICHTBARKEIT="${2:-private}"   # private oder public
 
 command -v gh >/dev/null || { echo "GitHub CLI fehlt: https://cli.github.com"; exit 1; }
@@ -15,7 +15,7 @@ rm -f github-einrichten.sh.bak
 if [ ! -d .git ]; then
   git init -q -b main
   git add .
-  git commit -q -m "Immobilienrechner 2.0"
+  git commit -q -m "Immocalc 2.0"
 fi
 
 gh repo create "$NAME" "--$SICHTBARKEIT" --source=. --remote=origin --push \
