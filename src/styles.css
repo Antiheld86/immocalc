@@ -21,7 +21,7 @@ body {
 }
 
 .app { padding: 20px 16px 60px; }
-.mitte { max-width: 1240px; margin: 0 auto; }
+.mitte { max-width: 1480px; margin: 0 auto; }
 
 .kopf { border-bottom: 2px solid var(--tinte); padding-bottom: 12px; margin-bottom: 20px; }
 .kopf h1 { font-family: "Archivo", sans-serif; font-weight: 700; font-size: 26px; letter-spacing: -0.02em; margin: 0; }
@@ -39,6 +39,24 @@ body {
 
 .spalten { display: grid; gap: 18px; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); align-items: start; }
 @media (max-width: 900px) { .spalten { grid-template-columns: 1fr; } }
+
+/* Eingabe links, Ergebnis rechts — die Ergebnisspalte läuft beim Scrollen mit. */
+.spalten-eingabe { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr) minmax(0, 430px); align-items: start; }
+.eingaben { display: grid; gap: 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+.seitenleiste {
+  position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto;
+  overscroll-behavior: contain; scrollbar-width: thin;
+}
+.seitenleiste .kennzahlen { margin-top: 0; }
+@media (max-width: 1100px) {
+  .spalten-eingabe { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  .seitenleiste { position: static; max-height: none; overflow: visible; }
+}
+@media (max-width: 700px) {
+  .eingaben { grid-template-columns: 1fr; }
+}
 
 .karte { background: var(--papier); border: 1px solid var(--linie); padding: 16px; }
 .karte + .karte { margin-top: 18px; }

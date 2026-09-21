@@ -140,8 +140,7 @@ export default function App() {
 
         <nav className="reiter" role="tablist">
           {[
-            ["eingabe", "Eingabe"],
-            ["ergebnis", "Ergebnis"],
+            ["eingabe", "Eingabe & Ergebnis"],
             ["verlauf", "Verlauf"],
             ["risiko", "Risiko"],
             ["vergleich", "Vergleich"],
@@ -159,9 +158,10 @@ export default function App() {
 
         {ausgabe && <p className="notiz warnung">{ausgabe}</p>}
 
-        {/* =============================================== Eingabe */}
+        {/* ====================================== Eingabe & Ergebnis */}
         {reiter === "eingabe" && (
-          <div className="spalten">
+          <div className="spalten-eingabe">
+            <div className="eingaben">
             <div>
               <section className="karte">
                 <h2>Objekt</h2>
@@ -322,33 +322,35 @@ export default function App() {
                   pruefung={r.simulation.pruefung15}
                 />
               </section>
-
-              <section className="karte">
-                <h2>Annahmen</h2>
-                <Regler label="Mietsteigerung" value={v.annahmen.mietsteigerung} min={0} max={5}
-                  step={0.1} maxHart={20} unit="%" onChange={set("annahmen", "mietsteigerung")} />
-                <Regler label="Kostensteigerung" value={v.annahmen.kostensteigerung} min={0} max={6}
-                  step={0.1} maxHart={20} unit="%" onChange={set("annahmen", "kostensteigerung")} />
-                <Regler label="Wertsteigerung" value={v.annahmen.wertsteigerung} min={-2} max={5}
-                  step={0.1} maxHart={20} unit="%" onChange={set("annahmen", "wertsteigerung")}
-                  hint="Die sensibelste Annahme der ganzen Rechnung. Bei schlechter Energieklasse eher am unteren Rand." />
-                <Regler label="Verkauf im Jahr" value={v.annahmen.verkaufsjahr} min={1} max={40}
-                  step={1} maxHart={40} unit="J" onChange={set("annahmen", "verkaufsjahr")}
-                  hint="Ab Jahr 11 ist der Gewinn nach § 23 EStG steuerfrei." />
-                <Regler label="Verkaufskosten" value={v.annahmen.verkaufskosten} min={0} max={10}
-                  step={0.5} maxHart={30} unit="%" onChange={set("annahmen", "verkaufskosten")} />
-                <Regler label="Rendite Vergleichsdepot" value={v.annahmen.etfRendite} min={0} max={12}
-                  step={0.1} maxHart={30} unit="%" onChange={set("annahmen", "etfRendite")}
-                  hint="Vor Steuern. Die Abgeltungsteuer wird beim Vergleich abgezogen." />
-              </section>
             </div>
-          </div>
-        )}
+            </div>
 
-        {/* =============================================== Ergebnis */}
-        {reiter === "ergebnis" && (
-          <div className="spalten">
-            <div>
+            <aside className="seitenleiste" aria-label="Ergebnis">
+              <section className="karte">
+                <h2>Kennzahlen</h2>
+                <dl className="kennzahlen">
+                  <div className="kz"><dt>Vervielfältiger</dt><dd>{num(r.objekt.vervielfaeltiger, 1)}</dd></div>
+                  <div className="kz"><dt>Nettorendite</dt><dd>{pct(r.objekt.nettorendite)}</dd></div>
+                  <div className="kz">
+                    <dt>Cashflow n. Steuern</dt>
+                    <dd className={k.cashflowMonatNachSteuer >= 0 ? "gut" : "schlecht"}>
+                      {eur(k.cashflowMonatNachSteuer)}
+                    </dd>
+                  </div>
+                  <div className="kz">
+                    <dt>EK-Rendite n. St.</dt>
+                    <dd className={k.ekRenditeNachSteuer >= 0 ? "gut" : "schlecht"}>{pct(k.ekRenditeNachSteuer)}</dd>
+                  </div>
+                  <div className="kz">
+                    <dt>Kapitaldienstdeckung</dt>
+                    <dd className={k.deckungsgrad >= 1 ? "gut" : "schlecht"}>{num(k.deckungsgrad, 2)}</dd>
+                  </div>
+                  <div className="kz"><dt>Break-even-Miete</dt><dd>{num(k.breakEvenMiete, 2)} <span className="klein">€/m²</span></dd></div>
+                  <div className="kz"><dt>Leerstand tragbar</dt><dd>{num(k.leerstandMonate, 1)} <span className="klein">Mon/J</span></dd></div>
+                  <div className="kz"><dt>Laufzeit Darlehen</dt><dd>{isFinite(r.finanzierung.laufzeit) ? `${r.finanzierung.laufzeit} J` : "∞"}</dd></div>
+                </dl>
+              </section>
+
               <section className="karte">
                 <h2>Investition</h2>
                 <div className="zeile"><span>Kaufpreis</span><span>{eur(v.objekt.kaufpreis)}</span></div>
@@ -379,32 +381,31 @@ export default function App() {
                   <span className={j1.steuer <= 0 ? "gut" : "schlecht"}>{eur(Math.abs(j1.steuer))}</span>
                 </div>
               </section>
-            </div>
+            </aside>
+          </div>
+        )}
 
-            <div>
+        {/* =============================================== Verlauf */}
+        {reiter === "verlauf" && (
+          <div className="spalten">
+            <aside className="seitenleiste" aria-label="Zukünftige Entwicklung">
               <section className="karte">
-                <h2>Kennzahlen</h2>
-                <dl className="kennzahlen">
-                  <div className="kz"><dt>Vervielfältiger</dt><dd>{num(r.objekt.vervielfaeltiger, 1)}</dd></div>
-                  <div className="kz"><dt>Nettorendite</dt><dd>{pct(r.objekt.nettorendite)}</dd></div>
-                  <div className="kz">
-                    <dt>Cashflow n. Steuern</dt>
-                    <dd className={k.cashflowMonatNachSteuer >= 0 ? "gut" : "schlecht"}>
-                      {eur(k.cashflowMonatNachSteuer)}
-                    </dd>
-                  </div>
-                  <div className="kz">
-                    <dt>EK-Rendite n. St.</dt>
-                    <dd className={k.ekRenditeNachSteuer >= 0 ? "gut" : "schlecht"}>{pct(k.ekRenditeNachSteuer)}</dd>
-                  </div>
-                  <div className="kz">
-                    <dt>Kapitaldienstdeckung</dt>
-                    <dd className={k.deckungsgrad >= 1 ? "gut" : "schlecht"}>{num(k.deckungsgrad, 2)}</dd>
-                  </div>
-                  <div className="kz"><dt>Break-even-Miete</dt><dd>{num(k.breakEvenMiete, 2)} <span className="klein">€/m²</span></dd></div>
-                  <div className="kz"><dt>Leerstand tragbar</dt><dd>{num(k.leerstandMonate, 1)} <span className="klein">Mon/J</span></dd></div>
-                  <div className="kz"><dt>Laufzeit Darlehen</dt><dd>{isFinite(r.finanzierung.laufzeit) ? `${r.finanzierung.laufzeit} J` : "∞"}</dd></div>
-                </dl>
+                <h2>Zukünftige Entwicklung</h2>
+                <Regler label="Mietsteigerung" value={v.annahmen.mietsteigerung} min={0} max={5}
+                  step={0.1} maxHart={20} unit="%" onChange={set("annahmen", "mietsteigerung")} />
+                <Regler label="Kostensteigerung" value={v.annahmen.kostensteigerung} min={0} max={6}
+                  step={0.1} maxHart={20} unit="%" onChange={set("annahmen", "kostensteigerung")} />
+                <Regler label="Wertsteigerung" value={v.annahmen.wertsteigerung} min={-2} max={5}
+                  step={0.1} maxHart={20} unit="%" onChange={set("annahmen", "wertsteigerung")}
+                  hint="Die sensibelste Annahme der ganzen Rechnung. Bei schlechter Energieklasse eher am unteren Rand." />
+                <Regler label="Verkauf im Jahr" value={v.annahmen.verkaufsjahr} min={1} max={40}
+                  step={1} maxHart={40} unit="J" onChange={set("annahmen", "verkaufsjahr")}
+                  hint="Ab Jahr 11 ist der Gewinn nach § 23 EStG steuerfrei." />
+                <Regler label="Verkaufskosten" value={v.annahmen.verkaufskosten} min={0} max={10}
+                  step={0.5} maxHart={30} unit="%" onChange={set("annahmen", "verkaufskosten")} />
+                <Regler label="Rendite Vergleichsdepot" value={v.annahmen.etfRendite} min={0} max={12}
+                  step={0.1} maxHart={30} unit="%" onChange={set("annahmen", "etfRendite")}
+                  hint="Vor Steuern. Die Abgeltungsteuer wird beim Vergleich abgezogen." />
               </section>
 
               {k.verkauf && (
@@ -448,13 +449,9 @@ export default function App() {
                   {pct(v.annahmen.wertsteigerung, 1)}.
                 </p>
               </section>
-            </div>
-          </div>
-        )}
+            </aside>
 
-        {/* =============================================== Verlauf */}
-        {reiter === "verlauf" && (
-          <>
+            <div>
             <section className="karte">
               <h2>Vermögensverlauf</h2>
               <Verlauf
@@ -499,7 +496,8 @@ export default function App() {
                 </table>
               </div>
             </section>
-          </>
+            </div>
+          </div>
         )}
 
         {/* =============================================== Risiko */}
