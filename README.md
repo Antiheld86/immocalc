@@ -20,6 +20,31 @@ In Dockge das Verzeichnis als Stack anlegen, `compose.yaml` einfügen,
 Deploy. Der Build läuft im Container und führt die Tests des Rechenkerns aus —
 schlägt einer fehl, entsteht kein Image.
 
+## Release als Docker-Image
+
+Ein Push mit Versions-Tag löst `.github/workflows/release.yml` aus. Der Workflow
+baut das Image (amd64 und arm64), veröffentlicht es in der GitHub Container
+Registry und legt das GitHub-Release an.
+
+```bash
+npm version minor --no-git-tag-version   # oder patch / major
+git commit -am "Version $(node -p "require('./package.json').version")"
+git tag -a "v$(node -p "require('./package.json').version")" -m "Release"
+git push origin main --tags
+```
+
+Der Tag muss zur Version in `package.json` passen, sonst bricht der Workflow ab.
+Fertige Images ohne lokalen Build:
+
+```bash
+docker pull ghcr.io/antiheld86/immocalc:latest
+docker run -d -p 8087:80 --name immorechner ghcr.io/antiheld86/immocalc:latest
+```
+
+Ist das Repository privat, ist es das Paket zunächst auch — vor dem Pull
+`docker login ghcr.io` mit einem Token (`read:packages`) oder das Paket in den
+GitHub-Paketeinstellungen freigeben.
+
 ### Entwicklung
 
 ```bash

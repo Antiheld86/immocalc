@@ -1,5 +1,7 @@
 # ---------- Build ----------
-FROM node:22-alpine AS build
+# Das Ergebnis ist statisches HTML/JS — gebaut wird immer auf der Host-Architektur,
+# nur das nginx-Laufzeit-Image gibt es je Zielplattform.
+FROM --platform=$BUILDPLATFORM node:22-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json* ./

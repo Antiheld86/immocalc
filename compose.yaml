@@ -1,7 +1,7 @@
 services:
   immorechner:
     build: .
-    image: immorechner:2.0
+    image: immorechner:2.1
     container_name: immorechner
     restart: unless-stopped
     ports:
