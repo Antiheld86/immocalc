@@ -1,154 +1,257 @@
-import React from "react";
-import { eur, num, pct } from "./Eingaben.jsx";
+import React, { useState } from "react";
+import { eur, kurz, pct } from "../format.js";
+import { useBreite } from "./useBreite.js";
 
-const FARBEN = {
-  restschuld: "#16283c",
-  objektwert: "#5e7183",
-  eigenkapital: "#b3341f",
-  etf: "#2f6b4f",
-};
+/* Farben und Linienarten stehen in styles.css (.s-objektwert usw.). */
+const REIHEN = [
+  { feld: "objektwert", klasse: "s-objektwert", name: "Objektwert" },
+  { feld: "etfDepot", klasse: "s-etf", name: "Vergleichsdepot" },
+  { feld: "restschuld", klasse: "s-restschuld", name: "Restschuld" },
+  { feld: "eigenkapital", klasse: "s-eigenkapital", name: "Eigenkapital" },
+];
+
+/** Runde Achsenwerte: 0, 250 T€, 500 T€ … statt 0, 287 T€, 574 T€. */
+function achse(lo, hi, anzahl = 4) {
+  const roh = (hi - lo || 1) / anzahl;
+  const mag = 10 ** Math.floor(Math.log10(roh));
+  const schritt = [1, 2, 2.5, 5, 10].map((f) => f * mag).find((s) => s >= roh);
+  const min = Math.floor(lo / schritt) * schritt;
+  const max = Math.ceil(hi / schritt) * schritt;
+  const ticks = [];
+  for (let t = min; t <= max + schritt / 2; t += schritt) ticks.push(Math.round(t / schritt) * schritt);
+  return { min, max, ticks };
+}
+
+/** Jahresmarken so wählen, dass sie sich nicht berühren. */
+function jahresmarken(daten, breitePlot) {
+  const abstand = breitePlot / Math.max(daten.length - 1, 1);
+  const schritt = [1, 2, 5, 10].find((s) => abstand * s >= 58) ?? 10;
+  return daten.map((j, i) => ({ jahr: j.jahr, i })).filter((m) => m.jahr % schritt === 0);
+}
 
 /**
  * Vermögensverlauf: Restschuld, Objektwert und Eigenkapital über die Zeit,
  * dazu das Vergleichsdepot. Alle Reihen teilen sich eine Achse, damit die
- * Größenverhältnisse ablesbar bleiben.
+ * Größenverhältnisse ablesbar bleiben. Über dem Diagramm zeigt ein Fadenkreuz
+ * die Werte eines Jahres.
  */
 export function Verlauf({ jahre, bis, zinsbindung, verkaufsjahr }) {
-  const daten = jahre.slice(0, bis);
-  const W = 760, H = 300, ML = 56, MR = 12, MT = 14, MB = 26;
+  const [ref, W] = useBreite();
+  const [aktiv, setAktiv] = useState(null);
 
-  const max = Math.max(...daten.flatMap((j) => [j.objektwert, j.restschuld, j.eigenkapital, j.etfDepot]));
-  const px = (i) => ML + (i / (daten.length - 1 || 1)) * (W - ML - MR);
-  const py = (v) => MT + (1 - v / max) * (H - MT - MB);
+  const daten = jahre.slice(0, bis);
+  const n = daten.length;
+  const H = W < 520 ? 240 : 300;
+  const ML = 64, MR = 12, MT = 14, MB = 28;
+
+  const alleWerte = daten.flatMap((j) => REIHEN.map((r) => j[r.feld]));
+  const y = achse(Math.min(0, ...alleWerte), Math.max(...alleWerte));
+  const px = (i) => ML + (i / (n - 1 || 1)) * (W - ML - MR);
+  const py = (v) => MT + (1 - (v - y.min) / (y.max - y.min || 1)) * (H - MT - MB);
 
   const pfad = (feld) =>
     daten.map((j, i) => (i ? "L" : "M") + px(i).toFixed(1) + " " + py(j[feld]).toFixed(1)).join(" ");
 
-  const gitter = [0, 0.25, 0.5, 0.75, 1].map((f) => f * max);
-  const zb = Math.min(zinsbindung, daten.length) - 1;
+  const marken = [];
+  if (zinsbindung >= 1 && zinsbindung <= n)
+    marken.push({ i: zinsbindung - 1, text: "Zinsbindung endet", klasse: "peil-zins" });
+  if (verkaufsjahr >= 1 && verkaufsjahr <= n)
+    marken.push({ i: verkaufsjahr - 1, text: "Verkauf", klasse: "peil-verkauf" });
+
+  const zeigen = (e) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    const i = Math.round(((e.clientX - box.left) / box.width) * (n - 1));
+    setAktiv(Math.min(Math.max(i, 0), n - 1));
+  };
+
+  const letztes = daten[n - 1];
+  const beschreibung =
+    `Vermögensverlauf über ${n} Jahre. Nach Jahr ${n}: ` +
+    REIHEN.map((r) => `${r.name} ${eur(letztes[r.feld])}`).join(", ") +
+    ". Alle Jahreswerte stehen in der Jahrestabelle.";
+
+  const j = aktiv !== null ? daten[aktiv] : null;
+  const TW = 200, TH = 24 + REIHEN.length * 16;
+  const tx = j ? Math.min(Math.max(px(aktiv) > W / 2 ? px(aktiv) - TW - 10 : px(aktiv) + 10, 4), W - TW - 4) : 0;
 
   return (
-    <div className="chart">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Vermögensverlauf">
-        {gitter.map((v, k) => (
-          <g key={k}>
-            <line x1={ML} y1={py(v)} x2={W - MR} y2={py(v)} className={k ? "raster" : "achse"} />
-            <text x={ML - 6} y={py(v) + 3} textAnchor="end" className="achstext">
-              {Math.round(v / 1000)}k
+    <div className="chart" ref={ref}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={beschreibung}>
+        {y.ticks.map((t) => (
+          <g key={t}>
+            <line x1={ML} y1={py(t)} x2={W - MR} y2={py(t)} className={t === 0 ? "achse" : "raster"} />
+            <text x={ML - 8} y={py(t) + 4} textAnchor="end" className="achstext">{kurz(t)}</text>
+          </g>
+        ))}
+
+        {jahresmarken(daten, W - ML - MR).map((m) => (
+          <text key={m.jahr} x={px(m.i)} y={H - 8} textAnchor="middle" className="achstext">
+            Jahr {m.jahr}
+          </text>
+        ))}
+
+        {marken.map((m, k) => (
+          <g key={m.klasse}>
+            <line x1={px(m.i)} y1={MT} x2={px(m.i)} y2={py(y.min)} className={`peillinie ${m.klasse}`} />
+            <text
+              x={px(m.i) + (px(m.i) > W - 130 ? -5 : 5)}
+              y={MT + 11 + k * 14}
+              textAnchor={px(m.i) > W - 130 ? "end" : "start"}
+              className={`marke-text ${m.klasse}`}
+            >
+              {m.text}
             </text>
           </g>
         ))}
 
-        {zb > 0 && zb < daten.length && (
-          <>
-            <line x1={px(zb)} y1={MT} x2={px(zb)} y2={py(0)} className="peillinie" />
-            <text x={px(zb) + 5} y={MT + 9} className="achstext" fill={FARBEN.eigenkapital}>
-              Zinsbindung
-            </text>
-          </>
-        )}
-        {verkaufsjahr && verkaufsjahr <= daten.length && (
-          <line x1={px(verkaufsjahr - 1)} y1={MT} x2={px(verkaufsjahr - 1)} y2={py(0)} className="peillinie" />
+        {REIHEN.map((r) => (
+          <path key={r.feld} d={pfad(r.feld)} className={`kurve ${r.klasse}`} />
+        ))}
+
+        {j && (
+          <g pointerEvents="none">
+            <line x1={px(aktiv)} y1={MT} x2={px(aktiv)} y2={py(y.min)} className="fadenkreuz" />
+            {REIHEN.map((r) => (
+              <circle key={r.feld} cx={px(aktiv)} cy={py(j[r.feld])} r={4} className={`punkt ${r.klasse}`} />
+            ))}
+            <rect x={tx} y={MT + 4} width={TW} height={TH} className="tip" />
+            <text x={tx + 10} y={MT + 22} className="tip-kopf">Jahr {j.jahr}</text>
+            {REIHEN.map((r, k) => (
+              <g key={r.feld} className={r.klasse}>
+                <rect x={tx + 10} y={MT + 32 + k * 16} width={8} height={8} className="tip-farbe" />
+                <text x={tx + 24} y={MT + 40 + k * 16} className="tip-text">{r.name}</text>
+                <text x={tx + TW - 10} y={MT + 40 + k * 16} textAnchor="end" className="tip-text">
+                  {eur(j[r.feld])}
+                </text>
+              </g>
+            ))}
+          </g>
         )}
 
-        <path d={pfad("objektwert")} className="kurve" stroke={FARBEN.objektwert} />
-        <path d={pfad("etfDepot")} className="kurve" stroke={FARBEN.etf} strokeDasharray="5 4" />
-        <path d={pfad("restschuld")} className="kurve" stroke={FARBEN.restschuld} />
-        <path d={pfad("eigenkapital")} className="kurve" stroke={FARBEN.eigenkapital} />
+        <rect
+          x={ML} y={MT} width={W - ML - MR} height={H - MT - MB}
+          fill="transparent" style={{ touchAction: "pan-y" }}
+          onPointerMove={zeigen} onPointerDown={zeigen}
+          onPointerLeave={(e) => e.pointerType === "mouse" && setAktiv(null)}
+        />
+      </svg>
+      <div className="legende">
+        {REIHEN.map((r) => (
+          <span key={r.feld} className={r.klasse}><i className="swatch" />{r.name}</span>
+        ))}
+        <span className="legende-hinweis">Über das Diagramm fahren oder tippen zeigt die Werte eines Jahres.</span>
+      </div>
+    </div>
+  );
+}
 
-        {[0, Math.floor(daten.length / 2), daten.length - 1].map((i) => (
-          <text key={i} x={px(i)} y={H - 8} textAnchor={i === 0 ? "start" : i === daten.length - 1 ? "end" : "middle"} className="achstext">
-            Jahr {i + 1}
+/** Cashflow je Jahr als Balken — zeigt, wann die Rechnung kippt. */
+export function CashflowChart({ jahre, bis }) {
+  const [ref, W] = useBreite();
+  const [aktiv, setAktiv] = useState(null);
+
+  const daten = jahre.slice(0, bis);
+  const n = daten.length;
+  const H = 200, ML = 64, MR = 12, MT = 12, MB = 28;
+  const werte = daten.map((j) => j.cashflow);
+  const y = achse(Math.min(...werte, 0), Math.max(...werte, 0), 3);
+
+  const bw = (W - ML - MR) / n;
+  const py = (v) => MT + (1 - (v - y.min) / (y.max - y.min || 1)) * (H - MT - MB);
+
+  return (
+    <div className="chart" ref={ref}>
+      <svg
+        width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img"
+        aria-label={`Cashflow nach Steuern je Jahr, ${n} Jahre. Die Werte stehen in der Jahrestabelle.`}
+        onPointerLeave={(e) => e.pointerType === "mouse" && setAktiv(null)}
+      >
+        {y.ticks.map((t) => (
+          <g key={t}>
+            <line x1={ML} y1={py(t)} x2={W - MR} y2={py(t)} className={t === 0 ? "achse" : "raster"} />
+            <text x={ML - 8} y={py(t) + 4} textAnchor="end" className="achstext">{kurz(t)}</text>
+          </g>
+        ))}
+        {daten.map((j, i) => (
+          <rect
+            key={j.jahr}
+            x={ML + i * bw + 1}
+            y={Math.min(py(j.cashflow), py(0))}
+            width={Math.max(1, bw - 2)}
+            height={Math.max(1, Math.abs(py(j.cashflow) - py(0)))}
+            className={`balken ${j.cashflow >= 0 ? "plus" : "minus"} ${aktiv === i ? "aktiv" : ""}`}
+            onPointerEnter={() => setAktiv(i)}
+            onPointerDown={() => setAktiv(i)}
+          >
+            <title>{`Jahr ${j.jahr}: ${eur(j.cashflow)}`}</title>
+          </rect>
+        ))}
+        {jahresmarken(daten, W - ML - MR).map((m) => (
+          <text key={m.jahr} x={ML + m.i * bw + bw / 2} y={H - 8} textAnchor="middle" className="achstext">
+            Jahr {m.jahr}
           </text>
         ))}
       </svg>
       <div className="legende">
-        <span><i style={{ background: FARBEN.objektwert }} />Objektwert</span>
-        <span><i style={{ background: FARBEN.restschuld }} />Restschuld</span>
-        <span><i style={{ background: FARBEN.eigenkapital }} />Eigenkapital</span>
-        <span><i style={{ background: FARBEN.etf, height: 0, borderTop: `2px dashed ${FARBEN.etf}` }} />Vergleichsdepot</span>
+        <span className="ablesung">
+          {aktiv !== null
+            ? `Jahr ${daten[aktiv].jahr}: ${eur(daten[aktiv].cashflow)} nach Steuern`
+            : "Jahrescashflow nach Steuern. Sanierungsjahre erscheinen als Ausschlag nach unten. Balken antippen zeigt den Wert."}
+        </span>
       </div>
     </div>
   );
 }
 
-/** Cashflow und Steuer je Jahr als Balken — zeigt, wann die Rechnung kippt. */
-export function CashflowChart({ jahre, bis }) {
-  const daten = jahre.slice(0, bis);
-  const W = 760, H = 200, ML = 56, MR = 12, MT = 12, MB = 24;
-  const werte = daten.map((j) => j.cashflow);
-  const max = Math.max(...werte, 0);
-  const min = Math.min(...werte, 0);
-  const spanne = max - min || 1;
-
-  const bw = (W - ML - MR) / daten.length;
-  const py = (v) => MT + (1 - (v - min) / spanne) * (H - MT - MB);
-
-  return (
-    <div className="chart">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Cashflow je Jahr">
-        <line x1={ML} y1={py(0)} x2={W - MR} y2={py(0)} className="achse" />
-        <text x={ML - 6} y={py(max) + 3} textAnchor="end" className="achstext">{Math.round(max / 1000)}k</text>
-        <text x={ML - 6} y={py(min) + 3} textAnchor="end" className="achstext">{Math.round(min / 1000)}k</text>
-        {daten.map((j, i) => {
-          const oben = Math.min(py(j.cashflow), py(0));
-          const hoehe = Math.abs(py(j.cashflow) - py(0));
-          return (
-            <rect
-              key={i}
-              x={ML + i * bw + 1}
-              y={oben}
-              width={Math.max(1, bw - 2)}
-              height={Math.max(1, hoehe)}
-              fill={j.cashflow >= 0 ? "#2f6b4f" : "#b3341f"}
-              opacity={0.85}
-            >
-              <title>{`Jahr ${j.jahr}: ${eur(j.cashflow)}`}</title>
-            </rect>
-          );
-        })}
-        <text x={ML} y={H - 6} className="achstext">Jahr 1</text>
-        <text x={W - MR} y={H - 6} textAnchor="end" className="achstext">Jahr {daten.length}</text>
-      </svg>
-      <div className="legende">
-        <span>Jahrescashflow nach Steuern. Sanierungsjahre erscheinen als Ausschlag nach unten.</span>
-      </div>
-    </div>
-  );
-}
-
-/** Farbskala von Kataster-Rot über Papier nach Grün. */
+/** Farbstärke nach Betrag; die Farben selbst kommen aus den CSS-Variablen. */
 function farbe(wert, spanne) {
   const t = Math.max(-1, Math.min(1, wert / spanne));
-  if (t >= 0) {
-    const a = 0.08 + t * 0.42;
-    return `rgba(47, 107, 79, ${a})`;
-  }
-  const a = 0.08 + -t * 0.42;
-  return `rgba(179, 52, 31, ${a})`;
+  const stark = Math.round((0.08 + Math.abs(t) * 0.42) * 100);
+  return `color-mix(in srgb, var(${t >= 0 ? "--gut" : "--kataster"}) ${stark}%, transparent)`;
 }
 
-export function Heatmap({ werte, mietFaktoren, zinsSaetze, basisMiete }) {
-  const alle = werte.flat();
-  const spanne = Math.max(...alle.map(Math.abs), 1);
+const zinsText = (z) => pct(z, Math.round(z * 10) === z * 10 ? 1 : 2);
+
+const mietText = (faktor) =>
+  faktor === 1 ? "aktuell" : `${faktor > 1 ? "+" : "−"}${pct(Math.abs(faktor - 1) * 100, 1)}`;
+
+/**
+ * Cashflow im ersten Jahr über Miete und Zins.
+ * `spalten`: [{ zins, aktuell }], `mietFaktoren`: relativ zur heutigen Gesamtmiete.
+ */
+export function Heatmap({ werte, spalten, mietFaktoren, basisMiete }) {
+  const spanne = Math.max(...werte.flat().map(Math.abs), 1);
 
   return (
     <div className="huelle">
       <table className="heat">
+        <caption className="nur-sr">
+          Monatlicher Cashflow nach Steuern im ersten Jahr, je Gesamtmiete und Sollzins
+        </caption>
         <thead>
           <tr>
-            <th style={{ textAlign: "left" }}>Miete \ Zins</th>
-            {zinsSaetze.map((z) => (
-              <th key={z}>{num(z, 1)} %</th>
+            <th rowSpan={2} scope="col" className="ecke">Miete pro Monat</th>
+            <th colSpan={spalten.length} scope="colgroup">Sollzins</th>
+          </tr>
+          <tr>
+            {spalten.map((s) => (
+              <th key={s.zins} scope="col" className={s.aktuell ? "aktuell" : ""}>{zinsText(s.zins)}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {mietFaktoren.map((mf, r) => (
             <tr key={mf}>
-              <td className="achse-zelle">{eur(basisMiete * mf)}</td>
-              {zinsSaetze.map((z, c) => (
-                <td key={z} style={{ background: farbe(werte[r][c], spanne) }}>
+              <th scope="row" className="achse-zelle">
+                {eur(basisMiete * mf)}
+                <em className="sub">{mietText(mf)}</em>
+              </th>
+              {spalten.map((s, c) => (
+                <td
+                  key={s.zins}
+                  className={mf === 1 && s.aktuell ? "aktuell" : ""}
+                  style={{ background: farbe(werte[r][c], spanne) }}
+                >
                   {eur(werte[r][c])}
                 </td>
               ))}
@@ -158,7 +261,7 @@ export function Heatmap({ werte, mietFaktoren, zinsSaetze, basisMiete }) {
       </table>
       <p className="notiz">
         Monatlicher Cashflow nach Steuern im ersten Jahr. Zeilen sind die Gesamtmiete, Spalten der
-        Sollzins. Die Nulllinie ist die Grenze, an der du zuzahlen musst.
+        Sollzins; die umrandete Zelle ist deine aktuelle Eingabe. Rot heißt: Du musst zuzahlen.
       </p>
     </div>
   );
@@ -170,7 +273,7 @@ export function Band({ ergebnisse }) {
     <div className="band">
       {ergebnisse.map((e) => (
         <div className={`band-spalte ${e.name === "Basis" ? "basis" : ""}`} key={e.name}>
-          <h4>{e.name}</h4>
+          <h3>{e.name}</h3>
           <div className="zeile">
             <span>Cashflow</span>
             <span className={e.r.kennzahlen.cashflowMonatNachSteuer >= 0 ? "gut" : "schlecht"}>
@@ -186,7 +289,7 @@ export function Band({ ergebnisse }) {
             <span>{pct(e.r.kennzahlen.irr)}</span>
           </div>
           <div className="zeile">
-            <span>Vermögen J{e.r.kennzahlen.horizont}</span>
+            <span>Vermögen Jahr {e.r.kennzahlen.horizont}</span>
             <span>{eur(e.r.kennzahlen.vermoegenImmobilie)}</span>
           </div>
           <div className="zeile">

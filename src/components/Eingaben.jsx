@@ -1,65 +1,85 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useId, useState } from "react";
+import { eur, num } from "../format.js";
+import { GLOSSAR } from "../glossar.js";
 
-/* ---------------------------------------------------------- Formatierung */
+/* ---------------------------------------------------------- Zahlenfeld */
 
-export const eur = (n, d = 0) =>
-  isFinite(n)
-    ? n.toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d }) + " €"
-    : "—";
+const lesen = (s, ganzzahl) => {
+  const n = parseFloat(s.replace(",", "."));
+  return isFinite(n) ? (ganzzahl ? Math.round(n) : n) : NaN;
+};
 
-export const pct = (n, d = 2) =>
-  isFinite(n)
-    ? n.toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d }) + " %"
-    : "—";
+/**
+ * Textfeld für Zahlen (Komma oder Punkt). Beim Tippen zählen nur gültige Werte
+ * im erlaubten Bereich; beim Verlassen wird ein zu großer oder kleiner Wert auf
+ * die Grenze gesetzt, ein leeres oder ungültiges Feld springt auf den letzten
+ * gültigen Wert zurück.
+ */
+export function Zahlenfeld({ value, onChange, min = -Infinity, max = Infinity, ganzzahl = false, ...rest }) {
+  const [text, setText] = useState(String(value));
 
-export const num = (n, d = 2) =>
-  isFinite(n)
-    ? n.toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d })
-    : "—";
+  useEffect(() => {
+    setText((t) => (lesen(t, ganzzahl) === value ? t : String(value)));
+  }, [value, ganzzahl]);
+
+  const n = lesen(text, ganzzahl);
+  const ausserhalb = text.trim() !== "" && (!isFinite(n) || n < min || n > max);
+
+  const tippen = (s) => {
+    setText(s);
+    const neu = lesen(s, ganzzahl);
+    if (isFinite(neu) && neu >= min && neu <= max) onChange(neu);
+  };
+
+  const abschliessen = () => {
+    const neu = lesen(text, ganzzahl);
+    if (!isFinite(neu)) {
+      setText(String(value));
+      return;
+    }
+    const fest = Math.min(Math.max(neu, min), max);
+    onChange(fest);
+    setText(String(fest));
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode={ganzzahl ? "numeric" : "decimal"}
+      value={text}
+      aria-invalid={ausserhalb || undefined}
+      onChange={(e) => tippen(e.target.value)}
+      onBlur={abschliessen}
+      onKeyDown={(e) => e.key === "Enter" && abschliessen()}
+      {...rest}
+    />
+  );
+}
 
 /* --------------------------------------------------------------- Regler */
 
 /**
  * Zahlenfeld mit Schieber. Der Schieber ist ein bequemer Bereich, keine
- * Grenze: Getippte Werte darüber werden übernommen, die Spur wächst mit.
+ * Grenze: Getippte Werte darüber (bis `maxHart`) werden übernommen, die Spur
+ * wächst mit.
  */
 export function Regler({ label, hint, value, min, max, maxHart, step, unit, onChange }) {
-  const [text, setText] = useState(String(value));
-  const grenze = maxHart ?? Infinity;
-
-  useEffect(() => {
-    setText((t) => (parseFloat(t.replace(",", ".")) === value ? t : String(value)));
-  }, [value]);
-
-  const tippen = (s) => {
-    setText(s);
-    const n = parseFloat(s.replace(",", "."));
-    if (isFinite(n)) onChange(n);
-  };
-
-  const abschliessen = () => {
-    const n = parseFloat(text.replace(",", "."));
-    const fest = isFinite(n) ? Math.min(Math.max(n, min), grenze) : min;
-    onChange(fest);
-    setText(String(fest));
-  };
-
-  const spurMax = Math.max(max, Math.min(value, grenze));
-  const id = `r-${label.replace(/\s+/g, "-")}`;
+  const id = useId();
+  const hintId = hint ? `${id}-hint` : undefined;
+  const spurMax = Math.max(max, Math.min(value, maxHart ?? Infinity));
 
   return (
     <div className="regler">
       <div className="regler-kopf">
         <label htmlFor={id}>{label}</label>
         <div className="regler-wert">
-          <input
+          <Zahlenfeld
             id={id}
-            type="text"
-            inputMode="decimal"
-            value={text}
-            onChange={(e) => tippen(e.target.value)}
-            onBlur={abschliessen}
-            onKeyDown={(e) => e.key === "Enter" && abschliessen()}
+            value={value}
+            onChange={onChange}
+            min={min}
+            max={maxHart ?? Infinity}
+            aria-describedby={hintId}
           />
           <span className="einheit">{unit}</span>
         </div>
@@ -67,27 +87,34 @@ export function Regler({ label, hint, value, min, max, maxHart, step, unit, onCh
       <input
         className="schieber"
         type="range"
-        aria-label={label}
+        aria-label={`${label} (Schieber)`}
+        aria-describedby={hintId}
         value={Math.min(Math.max(value, min), spurMax)}
         min={min}
         max={spurMax}
         step={step}
         onChange={(e) => onChange(parseFloat(e.target.value))}
       />
-      {hint && <div className="hint">{hint}</div>}
+      {hint && <div className="hint" id={hintId}>{hint}</div>}
     </div>
   );
 }
 
-export function Schalter({ label, hint, checked, onChange }) {
+export function Schalter({ label, hint, checked, onChange, kompakt = false }) {
+  const hintId = useId();
   return (
-    <div className="schalter">
+    <div className={kompakt ? "schalter kompakt" : "schalter"}>
       <label>
-        <input type="checkbox" checked={!!checked} onChange={(e) => onChange(e.target.checked)} />
+        <input
+          type="checkbox"
+          checked={!!checked}
+          aria-describedby={hint ? hintId : undefined}
+          onChange={(e) => onChange(e.target.checked)}
+        />
         <span className="kaestchen" aria-hidden="true" />
         <span>{label}</span>
       </label>
-      {hint && <div className="hint">{hint}</div>}
+      {hint && <div className="hint" id={hintId}>{hint}</div>}
     </div>
   );
 }
@@ -109,6 +136,7 @@ export function Bemassung({ anteil, boden, ek, fk, onChange }) {
           type="range"
           className="bem-input"
           aria-label="Eigenkapitalanteil"
+          aria-valuetext={`${num(p, 1)} % Eigenkapital`}
           min={0}
           max={100}
           step={0.1}
@@ -121,6 +149,30 @@ export function Bemassung({ anteil, boden, ek, fk, onChange }) {
         <span>{num(100 - p, 1)} % · {eur(fk)}</span>
       </div>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------- Begriffe */
+
+/** Fachbegriff mit Erklärung als Tooltip. */
+export function Begriff({ id, children }) {
+  return <abbr title={GLOSSAR[id].text}>{children ?? GLOSSAR[id].name}</abbr>;
+}
+
+/** Alle Begriffe als aufklappbare Liste — funktioniert auch ohne Maus. */
+export function Glossar({ ids }) {
+  return (
+    <details className="glossar">
+      <summary>Begriffe erklärt</summary>
+      <dl>
+        {ids.map((id) => (
+          <div key={id}>
+            <dt>{GLOSSAR[id].name}</dt>
+            <dd>{GLOSSAR[id].text}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
   );
 }
 
@@ -151,38 +203,32 @@ export function Einheiten({ einheiten, onChange }) {
           <div className="einheit-kopf">
             <input
               type="text"
+              className="name-feld"
               value={e.name}
               aria-label="Bezeichnung der Einheit"
+              placeholder="Bezeichnung"
               onChange={(ev) => setze(e.id, "name", ev.target.value)}
             />
-            <button className="knopf leise" onClick={() => entfernen(e.id)}>
+            <button
+              className="knopf leise"
+              aria-label={`${e.name || "Einheit"} entfernen`}
+              onClick={() => entfernen(e.id)}
+            >
               Entfernen
             </button>
           </div>
           <div className="felder">
             <label className="feld">
               <span>Fläche m²</span>
-              <input
-                type="number"
-                value={e.flaeche}
-                onChange={(ev) => setze(e.id, "flaeche", parseFloat(ev.target.value) || 0)}
-              />
+              <Zahlenfeld value={e.flaeche} min={0} onChange={(n) => setze(e.id, "flaeche", n)} />
             </label>
             <label className="feld">
               <span>Miete €</span>
-              <input
-                type="number"
-                value={e.miete}
-                onChange={(ev) => setze(e.id, "miete", parseFloat(ev.target.value) || 0)}
-              />
+              <Zahlenfeld value={e.miete} min={0} onChange={(n) => setze(e.id, "miete", n)} />
             </label>
             <label className="feld">
               <span>Zielmiete €</span>
-              <input
-                type="number"
-                value={e.zielmiete}
-                onChange={(ev) => setze(e.id, "zielmiete", parseFloat(ev.target.value) || 0)}
-              />
+              <Zahlenfeld value={e.zielmiete} min={0} onChange={(n) => setze(e.id, "zielmiete", n)} />
             </label>
           </div>
           <div className="einheit-fuss">
@@ -191,7 +237,7 @@ export function Einheiten({ einheiten, onChange }) {
           </div>
         </div>
       ))}
-      <div className="knopfreihe" style={{ marginTop: 12 }}>
+      <div className="knopfreihe knopfreihe-unten">
         <button className="knopf leise" onClick={hinzufuegen}>
           Einheit hinzufügen
         </button>
@@ -218,46 +264,39 @@ export function Sanierungsliste({ posten, onChange, pruefung }) {
           <div className="einheit-kopf">
             <input
               type="text"
+              className="name-feld"
               value={p.bezeichnung}
               aria-label="Bezeichnung der Maßnahme"
+              placeholder="Bezeichnung"
               onChange={(ev) => setze(p.id, "bezeichnung", ev.target.value)}
             />
-            <button className="knopf leise" onClick={() => onChange(posten.filter((x) => x.id !== p.id))}>
+            <button
+              className="knopf leise"
+              aria-label={`${p.bezeichnung || "Maßnahme"} entfernen`}
+              onClick={() => onChange(posten.filter((x) => x.id !== p.id))}
+            >
               Entfernen
             </button>
           </div>
-          <div className="felder">
+          <div className="felder felder-zwei">
             <label className="feld">
-              <span>Jahr</span>
-              <input
-                type="number"
-                min={1}
-                max={40}
-                value={p.jahr}
-                onChange={(ev) => setze(p.id, "jahr", parseInt(ev.target.value) || 1)}
-              />
+              <span>Im Jahr</span>
+              <Zahlenfeld ganzzahl value={p.jahr} min={1} max={40} onChange={(n) => setze(p.id, "jahr", n)} />
             </label>
             <label className="feld">
               <span>Betrag €</span>
-              <input
-                type="number"
-                value={p.betrag}
-                onChange={(ev) => setze(p.id, "betrag", parseFloat(ev.target.value) || 0)}
-              />
-            </label>
-            <label className="feld">
-              <span>Aktivieren</span>
-              <input
-                type="checkbox"
-                checked={!!p.aktivieren}
-                style={{ width: 16, height: 16, alignSelf: "center", marginTop: 6 }}
-                onChange={(ev) => setze(p.id, "aktivieren", ev.target.checked)}
-              />
+              <Zahlenfeld value={p.betrag} min={0} onChange={(n) => setze(p.id, "betrag", n)} />
             </label>
           </div>
+          <Schalter
+            kompakt
+            label="Über die AfA verteilen (aktivieren)"
+            checked={p.aktivieren}
+            onChange={(an) => setze(p.id, "aktivieren", an)}
+          />
         </div>
       ))}
-      <div className="knopfreihe" style={{ marginTop: 12 }}>
+      <div className="knopfreihe knopfreihe-unten">
         <button
           className="knopf leise"
           onClick={() =>
@@ -270,6 +309,10 @@ export function Sanierungsliste({ posten, onChange, pruefung }) {
           Maßnahme hinzufügen
         </button>
       </div>
+      <p className="notiz">
+        „Aktivieren“ heißt: Der Betrag wird nicht sofort abgezogen, sondern erhöht die
+        AfA-Basis und wirkt über viele Jahre.
+      </p>
       <p className={pruefung.ueberschritten ? "notiz warnung" : "notiz"}>
         15-%-Grenze (§ 6 Abs. 1 Nr. 1a EStG): {eur(pruefung.grenze)} in den ersten drei Jahren.
         Geplant sind dort {eur(pruefung.inDreiJahren)}.{" "}

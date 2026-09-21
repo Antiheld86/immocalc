@@ -48,9 +48,14 @@ src/
 │   ├── index.js        Einstiegspunkt, Standardwerte, Normalisierung
 │   └── engine.test.js  23 Tests
 ├── components/
-│   ├── Eingaben.jsx    Regler, Bemaßung, Einheiten, Sanierungsliste
-│   └── Grafik.jsx      Verlauf, Cashflow, Heatmap, Szenarioband
-├── App.jsx             Reiter, Speicherung, Export
+│   ├── Eingaben.jsx    Zahlenfeld, Regler, Bemaßung, Einheiten, Sanierungsliste, Glossar
+│   ├── Grafik.jsx      Verlauf, Cashflow, Heatmap, Szenarioband (zeichnen in echten Pixeln)
+│   ├── Hinweis.jsx     Meldungen und „Rückgängig“
+│   └── useBreite.js    Misst die Breite eines Elements für die Diagramme
+├── tabs/               Ein Reiter je Datei: Eingabe, Verlauf, Risiko, Vergleich
+├── App.jsx             Reiter, Speicherung, Export/Import
+├── format.js           Zahlenformate (de-DE)
+├── glossar.js          Erklärungen der Fachbegriffe
 └── styles.css
 ```
 
