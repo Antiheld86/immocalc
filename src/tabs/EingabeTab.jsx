@@ -16,6 +16,15 @@ export function EingabeTab({ v, setV, set, r, melde }) {
   const o = r.objekt;
   const f = r.finanzierung;
 
+  /* Beleihungsauslauf = Darlehen / Kaufpreis. Gespeichert wird das Eigenkapital, also
+     wird beim Tippen das Eigenkapital so gesetzt, dass genau dieses Darlehen bleibt.
+     Gerundet, damit das Feld nicht 80,00000000000001 statt 80 anzeigt. */
+  const kaufpreis = v.objekt.kaufpreis;
+  const beleihung = isFinite(f.beleihungsauslauf) ? Math.round(f.beleihungsauslauf * 100) / 100 : 0;
+  const maxBeleihung = kaufpreis > 0 ? Math.floor((o.gesamtinvestition / kaufpreis) * 10000) / 100 : 100;
+  const setzeBeleihung = (prozent) =>
+    set("finanzierung", "eigenkapital")(Math.max(0, o.gesamtinvestition - (prozent / 100) * kaufpreis));
+
   /* Entfernen lässt sich zurücknehmen; Hinzufügen und Bearbeiten nicht nötig. */
   const einheitenAendern = (neu) => {
     const alt = v.objekt.einheiten;
@@ -144,14 +153,13 @@ export function EingabeTab({ v, setV, set, r, melde }) {
               <span>davon für Nebenkosten</span>
               <span>{eur(Math.min(f.eigenkapital, o.nebenkosten))}</span>
             </div>
-            <div className="zeile">
-              <span><Begriff id="beleihung" /> <em className="sub">(Darlehen zum Kaufpreis)</em></span>
-              <span className={f.beleihungsauslauf > 80 ? "schlecht" : ""}>{pct(f.beleihungsauslauf, 1)}</span>
-            </div>
-            {f.beleihungsauslauf > 80 && (
-              <p className="notiz warnung">Über 80 %: Banken verlangen meist einen Zinsaufschlag.</p>
-            )}
             <div className="abstand-oben">
+              <Regler label="Beleihungsauslauf" value={beleihung} min={0} max={100}
+                step={0.5} maxHart={maxBeleihung} unit="%" onChange={setzeBeleihung}
+                hint={`Darlehen ${eur(f.darlehen)} im Verhältnis zum Kaufpreis. Eine Änderung setzt das Eigenkapital entsprechend.`} />
+              {f.beleihungsauslauf > 80 && (
+                <p className="notiz warnung">Über 80 %: Banken verlangen meist einen Zinsaufschlag.</p>
+              )}
               <Regler label="Sollzins" value={v.finanzierung.zins} min={0.5} max={8}
                 step={0.05} maxHart={30} unit="%" onChange={set("finanzierung", "zins")}
                 hint="Nominal, monatlich verrechnet. Der Effektivzins liegt leicht darüber." />
