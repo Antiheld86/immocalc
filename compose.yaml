@@ -1,0 +1,20 @@
+services:
+  immorechner:
+    build: .
+    image: immorechner:2.0
+    container_name: immorechner
+    restart: unless-stopped
+    ports:
+      - "8087:80"
+    # Reverse Proxy statt Portfreigabe? Dann ports auskommentieren
+    # und den Container ins Proxy-Netz hängen:
+    # networks:
+    #   - proxy
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.http.routers.immorechner.rule=Host(`immo.deine-domain.de`)"
+    #   - "traefik.http.services.immorechner.loadbalancer.server.port=80"
+
+# networks:
+#   proxy:
+#     external: true

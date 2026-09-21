@@ -1,0 +1,183 @@
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500&display=swap");
+
+:root {
+  --plan: #e7ecef;
+  --papier: #f8fafb;
+  --tinte: #16283c;
+  --grau: #5e7183;
+  --linie: #c3d0d9;
+  --kataster: #b3341f;
+  --gut: #2f6b4f;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--plan);
+  color: var(--tinte);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 14px;
+}
+
+.app { padding: 20px 16px 60px; }
+.mitte { max-width: 1240px; margin: 0 auto; }
+
+.kopf { border-bottom: 2px solid var(--tinte); padding-bottom: 12px; margin-bottom: 20px; }
+.kopf h1 { font-family: "Archivo", sans-serif; font-weight: 700; font-size: 26px; letter-spacing: -0.02em; margin: 0; }
+.kopf p { margin: 4px 0 0; font-size: 13px; color: var(--grau); }
+.kopf-zeile { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+
+.reiter { display: flex; gap: 0; margin-bottom: 18px; border-bottom: 1px solid var(--linie); flex-wrap: wrap; }
+.reiter button {
+  font-family: "Archivo", sans-serif; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--grau);
+  padding: 9px 14px; cursor: pointer;
+}
+.reiter button[aria-selected="true"] { color: var(--tinte); border-bottom-color: var(--kataster); }
+.reiter button:focus-visible { outline: 2px solid var(--kataster); outline-offset: -2px; }
+
+.spalten { display: grid; gap: 18px; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); align-items: start; }
+@media (max-width: 900px) { .spalten { grid-template-columns: 1fr; } }
+
+.karte { background: var(--papier); border: 1px solid var(--linie); padding: 16px; }
+.karte + .karte { margin-top: 18px; }
+.karte h2 {
+  font-family: "Archivo", sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--grau); margin: 0 0 14px; padding-bottom: 7px;
+  border-bottom: 1px solid var(--linie);
+}
+.karte h3 { font-family: "Archivo", sans-serif; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--grau); margin: 18px 0 8px; }
+.notiz { font-size: 11.5px; color: var(--grau); line-height: 1.55; margin: 12px 0 0; }
+.notiz.warnung { color: var(--kataster); }
+
+/* --- Regler ------------------------------------------------------------ */
+.regler { margin-bottom: 14px; }
+.regler-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.regler-kopf label { font-size: 13px; font-weight: 500; }
+.regler-wert { display: flex; align-items: baseline; gap: 4px; }
+.regler-wert input {
+  width: 104px; text-align: right; font-family: "IBM Plex Mono", monospace; font-size: 14px;
+  font-weight: 500; border: 1px solid var(--linie); background: #fff; color: var(--tinte); padding: 3px 6px;
+}
+.regler-wert input:focus { outline: 2px solid var(--kataster); outline-offset: 1px; }
+.einheit { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--grau); width: 28px; }
+.hint { font-size: 11px; color: var(--grau); margin-top: 3px; line-height: 1.45; }
+.schieber { width: 100%; -webkit-appearance: none; appearance: none; background: transparent; margin: 6px 0 0; height: 18px; }
+.schieber:focus { outline: none; }
+.schieber::-webkit-slider-runnable-track { height: 2px; background: var(--linie); }
+.schieber::-moz-range-track { height: 2px; background: var(--linie); }
+.schieber::-webkit-slider-thumb { -webkit-appearance: none; width: 3px; height: 16px; background: var(--tinte); margin-top: -7px; border: 0; cursor: ew-resize; }
+.schieber::-moz-range-thumb { width: 3px; height: 16px; background: var(--tinte); border: 0; border-radius: 0; cursor: ew-resize; }
+.schieber:focus::-webkit-slider-thumb { background: var(--kataster); box-shadow: 0 0 0 3px rgba(179, 52, 31, 0.25); }
+.schieber:focus::-moz-range-thumb { background: var(--kataster); box-shadow: 0 0 0 3px rgba(179, 52, 31, 0.25); }
+
+.schalter { margin: 0 0 14px; }
+.schalter label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 500; }
+.schalter input { position: absolute; opacity: 0; width: 0; height: 0; }
+.kaestchen { width: 14px; height: 14px; border: 1px solid var(--tinte); background: #fff; flex-shrink: 0; position: relative; }
+.schalter input:checked + .kaestchen { background: var(--kataster); border-color: var(--kataster); }
+.schalter input:checked + .kaestchen::after {
+  content: ""; position: absolute; left: 3.5px; top: 0.5px; width: 4px; height: 8px;
+  border: solid var(--papier); border-width: 0 1.5px 1.5px 0; transform: rotate(42deg);
+}
+.schalter input:focus-visible + .kaestchen { outline: 2px solid var(--kataster); outline-offset: 2px; }
+
+/* --- Zeilen und Kennzahlen --------------------------------------------- */
+.zeile { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 5px 0; font-size: 13px; }
+.zeile + .zeile { border-top: 1px dotted var(--linie); }
+.zeile > span:last-child { font-family: "IBM Plex Mono", monospace; font-weight: 500; white-space: nowrap; }
+.zeile.summe { border-top: 1.5px solid var(--tinte); margin-top: 5px; padding-top: 8px; font-weight: 600; }
+.zeile.summe > span:last-child { font-size: 15px; }
+.sub { color: var(--grau); font-size: 12px; font-style: normal; }
+.gut { color: var(--gut); }
+.schlecht { color: var(--kataster); }
+
+.kennzahlen { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--linie); border: 1px solid var(--linie); margin-top: 14px; }
+.kz { background: var(--papier); padding: 11px 12px; }
+.kz dt { font-family: "Archivo", sans-serif; font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--grau); margin: 0 0 3px; }
+.kz dd { margin: 0; font-family: "IBM Plex Mono", monospace; font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+.kz dd .klein { font-size: 12px; font-weight: 500; color: var(--grau); }
+
+/* --- Bemaßung ---------------------------------------------------------- */
+.bemassung { margin: 2px 0 14px; }
+.bem-zeile { display: flex; justify-content: space-between; font-family: "Archivo", sans-serif; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--grau); }
+.bem-spur { position: relative; height: 34px; margin: 8px 0 6px; border-left: 1px solid var(--tinte); border-right: 1px solid var(--tinte); }
+.bem-spur::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--tinte); }
+.bem-spur:focus-within { outline: 2px solid var(--kataster); outline-offset: 3px; }
+.bem-fuellung { position: absolute; left: 0; top: calc(50% - 5px); width: var(--p); height: 10px; background: repeating-linear-gradient(135deg, var(--kataster) 0 1px, transparent 1px 5px); }
+.bem-boden { position: absolute; left: var(--b); top: 6px; bottom: 6px; width: 1px; background: var(--grau); }
+.bem-marke { position: absolute; left: var(--p); top: 2px; bottom: 2px; width: 1px; background: var(--kataster); }
+.bem-marke::after { content: ""; position: absolute; left: -4px; top: -2px; width: 9px; height: 9px; background: var(--kataster); transform: rotate(45deg); }
+.bem-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: ew-resize; margin: 0; }
+.bem-zahlen { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--tinte); letter-spacing: 0; text-transform: none; }
+
+/* --- Einheiten und Sanierung ------------------------------------------- */
+.einheit-zeile { border-top: 1px dotted var(--linie); padding: 10px 0; }
+.einheit-kopf { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.einheit-kopf input[type="text"] { flex: 1; min-width: 0; border: 1px solid transparent; background: transparent; font-family: "Inter", sans-serif; font-size: 13px; font-weight: 500; color: var(--tinte); padding: 3px 4px; }
+.einheit-kopf input[type="text"]:hover { border-color: var(--linie); background: #fff; }
+.einheit-kopf input[type="text"]:focus { outline: 2px solid var(--kataster); outline-offset: 0; background: #fff; }
+.felder { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.feld { display: flex; flex-direction: column; gap: 3px; }
+.feld span { font-family: "Archivo", sans-serif; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--grau); }
+.feld input { width: 100%; border: 1px solid var(--linie); background: #fff; font-family: "IBM Plex Mono", monospace; font-size: 13px; text-align: right; padding: 4px 6px; color: var(--tinte); }
+.feld input:focus { outline: 2px solid var(--kataster); outline-offset: 1px; }
+.einheit-fuss { display: flex; justify-content: space-between; font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--grau); margin-top: 5px; }
+
+/* --- Knöpfe ------------------------------------------------------------ */
+.knopf {
+  border: 1px solid var(--tinte); background: var(--tinte); color: var(--papier);
+  font-family: "Archivo", sans-serif; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 7px 14px; cursor: pointer; white-space: nowrap;
+}
+.knopf:hover { background: var(--kataster); border-color: var(--kataster); }
+.knopf.leise { background: transparent; color: var(--grau); border-color: var(--linie); padding: 4px 8px; font-size: 10px; }
+.knopf.leise:hover { background: transparent; color: var(--kataster); border-color: var(--kataster); }
+.knopf:focus-visible { outline: 2px solid var(--kataster); outline-offset: 2px; }
+.knopfreihe { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* --- Tabellen ---------------------------------------------------------- */
+.huelle { overflow-x: auto; }
+.tabelle { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tabelle th {
+  font-family: "Archivo", sans-serif; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--grau); text-align: right; font-weight: 600; padding: 0 8px 7px 0;
+  border-bottom: 1px solid var(--tinte); position: sticky; top: 0; background: var(--papier);
+}
+.tabelle th:first-child { text-align: left; }
+.tabelle td { font-family: "IBM Plex Mono", monospace; text-align: right; padding: 6px 8px 6px 0; border-bottom: 1px dotted var(--linie); white-space: nowrap; }
+.tabelle td.titel { font-family: "Inter", sans-serif; text-align: left; font-weight: 500; white-space: normal; }
+.tabelle tr.markiert td { background: rgba(179, 52, 31, 0.06); }
+.tabelle tr.jetzt td { background: rgba(179, 52, 31, 0.05); }
+.scrollbereich { max-height: 460px; overflow: auto; }
+
+/* --- Diagramme --------------------------------------------------------- */
+.chart svg { width: 100%; height: auto; display: block; }
+.achse { stroke: var(--tinte); stroke-width: 1; }
+.raster { stroke: var(--linie); stroke-width: 1; stroke-dasharray: 2 4; }
+.kurve { fill: none; stroke-width: 2; }
+.kurve-flaeche { stroke: none; }
+.peillinie { stroke: var(--kataster); stroke-width: 1; stroke-dasharray: 4 3; }
+.achstext { font-family: "IBM Plex Mono", monospace; font-size: 9px; fill: var(--grau); }
+.legende { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: var(--grau); margin-top: 8px; }
+.legende span { display: flex; align-items: center; gap: 5px; }
+.legende i { width: 14px; height: 2px; display: inline-block; }
+
+/* --- Heatmap ----------------------------------------------------------- */
+.heat { border-collapse: collapse; font-family: "IBM Plex Mono", monospace; font-size: 12px; }
+.heat th { font-family: "Archivo", sans-serif; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--grau); padding: 5px 8px; font-weight: 600; }
+.heat td { padding: 8px 10px; text-align: right; border: 1px solid var(--papier); min-width: 74px; }
+.heat td.achse-zelle { background: transparent; color: var(--grau); font-family: "Archivo", sans-serif; font-size: 10px; letter-spacing: 0.08em; text-align: left; }
+
+/* --- Band -------------------------------------------------------------- */
+.band { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--linie); border: 1px solid var(--linie); }
+.band-spalte { background: var(--papier); padding: 12px; }
+.band-spalte h4 { font-family: "Archivo", sans-serif; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; margin: 0 0 10px; color: var(--grau); }
+.band-spalte.basis { background: rgba(179, 52, 31, 0.05); }
+.band-spalte.basis h4 { color: var(--kataster); }
+
+textarea.ausgabe { width: 100%; border: 1px solid var(--linie); background: #fff; font-family: "IBM Plex Mono", monospace; font-size: 11.5px; line-height: 1.5; padding: 10px; resize: vertical; color: var(--tinte); }
+textarea.ausgabe:focus { outline: 2px solid var(--kataster); outline-offset: 1px; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
